@@ -1,5 +1,7 @@
 package com.gamedev.dreamteam.graphicTricks;
 
+import android.content.pm.ActivityInfo;
+import android.graphics.Point;
 import android.os.Bundle;
 
 import android.app.Activity;
@@ -7,7 +9,10 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.ConfigurationInfo;
 import android.opengl.GLSurfaceView;
-import android.util.DisplayMetrics;
+import android.view.Display;
+
+import com.gamedev.dreamteam.graphicTricks.tmp.rend;
+import com.gamedev.dreamteam.graphicTricks.tmp.rend2;
 
 /**
  * Класс, описывающий главную активность. Хранит ссылку на GLSurfaceView,
@@ -25,6 +30,7 @@ public class MainActivity extends Activity
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
+        //setRequestedOrientation (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         super.onCreate(savedInstanceState);
 
         // Вьюшка для рисования
@@ -35,16 +41,16 @@ public class MainActivity extends Activity
         final ConfigurationInfo configurationInfo = activityManager.getDeviceConfigurationInfo();
         final boolean supportsEs2 = configurationInfo.reqGlEsVersion >= 0x20000;
 
-        // Получение размеров экрана в пикселях и передача в рендер
-        DisplayMetrics displaymetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
-        int width = displaymetrics.widthPixels;
-        int height = displaymetrics.heightPixels;
-
         if (supportsEs2)
         {
+            // Получаем ширину и высоту экрана и передаем их в рендерер
+            Display display = getWindowManager().getDefaultDisplay();
+            Point size = new Point();
+            display.getSize(size);
+            int width = size.x;
+            int height = size.y;
             mGLSurfaceView.setEGLContextClientVersion(2);
-            mGLSurfaceView.setRenderer(new OpenGLRenderer(this, width, height));
+            mGLSurfaceView.setRenderer(new OpenGLRendererCube(this, width, height));
         }
         else return;
 

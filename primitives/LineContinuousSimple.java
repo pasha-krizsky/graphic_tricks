@@ -8,7 +8,7 @@ public class LineContinuousSimple extends Line {
     public LineContinuousSimple(float... coords) {
         vertices = new float[coords.length];
         vertices = coords;
-        numberOfVertices = coords.length / 2;
+        numberOfVertices = coords.length / 3;
         prepareBuffer();
 
     }

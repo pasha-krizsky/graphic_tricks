@@ -11,24 +11,23 @@ public class CircleSimple extends Circle {
      * @param x_center - X центра круга
      * @param y_center - Y центра круга
      * @param radius - ридиус круга
-     * @param width - ширина экрана
-     * @param height - высота экрана
      */
-    public CircleSimple(float x_center, float y_center, float radius, int width, int height) {
+    public CircleSimple(float x_center, float y_center, float z_center, float radius) {
 
-        vertices = new float[148];
+        vertices = new float[222];
         vertices[0] = x_center;
-        vertices[1] = y_center*width/height;
+        vertices[1] = y_center;
+        vertices[2] = z_center;
 
         int step = 5;
-        int index = 2;
+        int index = 3;
         for (int angle = 0; angle <= 360; angle+=step) {
             float angleRad = (float) angle * (float) Math.PI / 180;
             vertices[index] = x_center + radius * (float) Math.cos(angleRad);
             index++;
-            vertices[index] = y_center*width/height
-                    + radius*width/height
-                    * (float) Math.sin(angleRad);
+            vertices[index] = y_center + radius * (float) Math.sin(angleRad);
+            index++;
+            vertices[index] = z_center;
             index++;
         }
 

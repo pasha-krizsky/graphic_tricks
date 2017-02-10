@@ -16,17 +16,15 @@ public class CircleColor extends Circle {
     protected float[] verticesColor;
 
     /** Конструктор цветного круга. Принимает координаты центра, цветовые координаты центра,
-     *  радиус, цветовые координаты края, ширину и высоту экрана. Высота экрана преобразуется
-     *  до нового значения, учитывающего соотношение сторон.
+     *  радиус, цветовые координаты края
      */
-    public CircleColor(float x_center, float y_center,
+    public CircleColor(float x_center, float y_center, float z_center,
                        float r_center, float g_center, float b_center,
                        float radius,
-                       float r_edge, float g_edge, float b_edge,
-                       int width, int height) {
+                       float r_edge, float g_edge, float b_edge) {
 
         // Выделение памяти под массивы
-        vertices = new float[148];
+        vertices = new float[222];
         verticesColor = new float[225];
 
         // Заполнение массива с цветом
@@ -43,21 +41,21 @@ public class CircleColor extends Circle {
 
         // Заполнение массива вершин
         vertices[0] = x_center;
-        vertices[1] = y_center*width/height;
+        vertices[1] = y_center;
+        vertices[2] = z_center;
 
         // Шаг угла
         int step = 5;
         // Индекс координаты вершины
-        int index = 2;
+        int index = 3;
         // Вычисление координат вершин
         for (int angle = 0; angle <= 360; angle+=step) {
             float angleRad = (float) angle * (float) Math.PI / 180;
             vertices[index] = x_center + radius * (float) Math.cos(angleRad);
             index++;
-            vertices[index] =
-                    y_center*width/height
-                    + radius*width/height
-                    * (float) Math.sin(angleRad);
+            vertices[index] = y_center + radius * (float) Math.sin(angleRad);
+            index++;
+            vertices[index] = z_center;
             index++;
         }
 

@@ -7,13 +7,13 @@ public class LineContinuousColor extends Line {
     protected int numberOfVertices;
 
     /** Конструктор, принимающий произвольное кол-во координат
-     *  @param coords - координаты в виде (x, y, r, g, b, x2, y2, r2, g2, b2...)
+     *  @param coords - координаты в виде (x, y, z, r, g, b, x2, y2, z2, r2, g2, b2...)
      */
     public LineContinuousColor (float... coords) {
 
         vertices = new float[coords.length];
         vertices = coords;
-        numberOfVertices = coords.length / 5;
+        numberOfVertices = coords.length / 6;
         prepareBuffer();
     }
 
