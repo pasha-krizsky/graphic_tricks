@@ -41,6 +41,13 @@ public class Model {
         GraphicTricks.dropModelMatrix();
     }
 
+    public void move(float valueX, float valueY, float valueZ) {
+        dx = valueX;
+        dy = valueY;
+        dz = valueZ;
+        GraphicTricks.translateModelMatrix(dx, dy, dz);
+    }
+
     public void moveLeft(float value) {
         dx = -value;
         GraphicTricks.translateModelMatrix(dx, dy, dz);

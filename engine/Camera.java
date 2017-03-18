@@ -29,17 +29,17 @@ public class Camera {
      */
     public void initialize() {
 
-        eyeX = 0;
-        eyeY = 0;
-        eyeZ = 1;
+        eyeX =  0.0f;
+        eyeY =  0.0f;
+        eyeZ = -0.5f;
 
-        centerX = 0;
-        centerY = 0;
-        centerZ = -10;
+        centerX =  0.0f;
+        centerY =  0.0f;
+        centerZ = -5.0f;
 
-        upX = 0;
-        upY = 1;
-        upZ = 0;
+        upX = 0.0f;
+        upY = 1.0f;
+        upZ = 0.0f;
 
         GraphicTricks.setViewMatrix(eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ);
     }

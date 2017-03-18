@@ -1,6 +1,5 @@
-package com.gamedev.dreamteam.graphicTricks;
+package com.gamedev.dreamteam.graphicTricks.activities;
 
-import android.content.pm.ActivityInfo;
 import android.graphics.Point;
 import android.os.Bundle;
 
@@ -11,8 +10,7 @@ import android.content.pm.ConfigurationInfo;
 import android.opengl.GLSurfaceView;
 import android.view.Display;
 
-import com.gamedev.dreamteam.graphicTricks.tmp.rend;
-import com.gamedev.dreamteam.graphicTricks.tmp.rend2;
+import com.gamedev.dreamteam.graphicTricks.renderers.OpenGLRendererLightCube;
 
 /**
  * Класс, описывающий главную активность. Хранит ссылку на GLSurfaceView,
@@ -50,7 +48,9 @@ public class MainActivity extends Activity
             int width = size.x;
             int height = size.y;
             mGLSurfaceView.setEGLContextClientVersion(2);
-            mGLSurfaceView.setRenderer(new OpenGLRendererCube(this, width, height));
+            //mGLSurfaceView.setRenderer(new OpenGLRendererCubesAndPiramides(this, width, height));
+            //mGLSurfaceView.setRenderer(new LessonTwoRenderer());
+            mGLSurfaceView.setRenderer(new OpenGLRendererLightCube(this, width, height));
         }
         else return;
 

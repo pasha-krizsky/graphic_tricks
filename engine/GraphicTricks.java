@@ -1,6 +1,7 @@
 package com.gamedev.dreamteam.graphicTricks.engine;
 
 import android.content.Context;
+import android.opengl.GLES20;
 import android.opengl.Matrix;
 
 // Импорт примитивов
@@ -9,6 +10,7 @@ import com.gamedev.dreamteam.graphicTricks.primitives.*;
 
 // Импорт утилиты для чтения шейдеров
 import com.gamedev.dreamteam.graphicTricks.utils.ShaderUtils;
+import com.gamedev.dreamteam.graphicTricks.utils.TextureUtils;
 
 // Импорт методов OpenGL
 import static android.opengl.GLES20.GL_COLOR_BUFFER_BIT;
@@ -20,17 +22,25 @@ import static android.opengl.GLES20.GL_LINES;
 import static android.opengl.GLES20.GL_LINE_LOOP;
 import static android.opengl.GLES20.GL_LINE_STRIP;
 import static android.opengl.GLES20.GL_POINTS;
+import static android.opengl.GLES20.GL_TEXTURE0;
+import static android.opengl.GLES20.GL_TEXTURE_2D;
 import static android.opengl.GLES20.GL_TRIANGLES;
 import static android.opengl.GLES20.GL_TRIANGLE_FAN;
 import static android.opengl.GLES20.GL_TRIANGLE_STRIP;
+import static android.opengl.GLES20.GL_UNSIGNED_BYTE;
 import static android.opengl.GLES20.GL_VERTEX_SHADER;
+import static android.opengl.GLES20.glActiveTexture;
+import static android.opengl.GLES20.glBindTexture;
 import static android.opengl.GLES20.glClear;
 import static android.opengl.GLES20.glClearColor;
 import static android.opengl.GLES20.glDrawArrays;
+import static android.opengl.GLES20.glDrawElements;
 import static android.opengl.GLES20.glEnable;
 import static android.opengl.GLES20.glEnableVertexAttribArray;
 import static android.opengl.GLES20.glGetAttribLocation;
 import static android.opengl.GLES20.glGetUniformLocation;
+import static android.opengl.GLES20.glUniform1i;
+import static android.opengl.GLES20.glUniform3f;
 import static android.opengl.GLES20.glUniform4f;
 import static android.opengl.GLES20.glUniformMatrix4fv;
 import static android.opengl.GLES20.glUseProgram;
@@ -44,6 +54,10 @@ import static android.opengl.GLES20.glViewport;
 public class GraphicTricks {
 
     private static GraphicContext context = new GraphicContext();
+
+    public static int loadTexture(Context context, int resourceId) {
+        return TextureUtils.loadTexture(context, resourceId);
+    }
 
     /** Фабричный метод для создания простых точек, Z=0 */
     public static PointSimple createPointSimple(float x, float y) {
@@ -193,6 +207,18 @@ public class GraphicTricks {
         return new TriangleColor(x1, y1, z1, r1, g1, b1, x2, y2, z2, r2, g2, b2, x3, y3, z3, r3, g3, b3);
     }
 
+    /** Фабричный метод для создания простых прямоугольников со скруг. угл. */
+    public static RoundRectSimple createRoundRectSimple(
+            float x_top_left, float y_top_left,
+            float x_bottom_right, float y_bottom_right, float round_radius) {
+
+        if (!context.getPrograms().containsKey("simple"))
+            GraphicTricks.createProgramSimple();
+
+        return new RoundRectSimple(x_top_left, y_top_left,
+                x_bottom_right, y_bottom_right, round_radius);
+    }
+
 
     /** Фабричный метод для создания простых четырехугольников, z1, z2, z3, z4 = 0 */
     public static QuadrangleSimple createQuadrangleSimple(
@@ -220,6 +246,34 @@ public class GraphicTricks {
         return new QuadrangleSimple(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4);
     }
 
+    /** Фабричный метод для создания четырехугольников, на которые накладываем текстуры */
+    public static QuadrangleTexture createQuadrangleTexture(
+            float x1, float y1, float z1,
+            float x2, float y2, float z2,
+            float x3, float y3, float z3,
+            float x4, float y4, float z4) {
+
+        if (!context.getPrograms().containsKey("texture"))
+            GraphicTricks.createProgramTexture();
+
+        return new QuadrangleTexture(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4);
+    }
+
+    /** Фабричный метод для создания четырехугольников, на которые накладываем текстуры
+        c указанием координат текстуры */
+    public static QuadrangleTexture createQuadrangleTexture(
+            float x1, float y1, float z1, float s1, float t1,
+            float x2, float y2, float z2, float s2, float t2,
+            float x3, float y3, float z3, float s3, float t3,
+            float x4, float y4, float z4, float s4, float t4) {
+
+        if (!context.getPrograms().containsKey("texture"))
+            GraphicTricks.createProgramTexture();
+
+        return new QuadrangleTexture(
+                x1, y1, z1, s1, t1, x2, y2, z2, s2, t2, x3, y3, z3, s3, t3, x4, y4, z4, s4, t4);
+    }
+
     /** Фабричный метод для создания разноцветных четырехугольников, z1, z2, z3, z4 = 0 */
     public static QuadrangleColor createQuadrangleColor(
             float x1, float y1,
@@ -233,6 +287,9 @@ public class GraphicTricks {
 
         if (!context.getPrograms().containsKey("color"))
             GraphicTricks.createProgramColor();
+
+        if (!context.getPrograms().containsKey("light"))
+            GraphicTricks.createProgramLight();
 
         return new QuadrangleColor(
                 x1, y1, 0, r1, g1, b1,
@@ -254,6 +311,9 @@ public class GraphicTricks {
 
         if (!context.getPrograms().containsKey("color"))
             GraphicTricks.createProgramColor();
+
+        if (!context.getPrograms().containsKey("light"))
+            GraphicTricks.createProgramLight();
 
         return new QuadrangleColor(
                 x1, y1, z1, r1, g1, b1,
@@ -316,6 +376,110 @@ public class GraphicTricks {
         return new PolygonColor(x_center, y_center, z_center, r_center, g_center, b_center, coords);
     }
 
+    /** Фабричный метод для создания сектора окружности с шагом 5 (по умолчанию), z_center = 0 */
+    public static CircleSectorSimple createCircleSectorSimple(float x_center, float y_center,
+                                                             float radius, float angle,
+                                                             Direction direction) {
+        if (!context.getPrograms().containsKey("simple"))
+            GraphicTricks.createProgramSimple();
+
+        return new CircleSectorSimple(x_center,
+                y_center, 0, radius, angle, direction);
+    }
+
+    /** Фабричный метод для создания окружности с шагом 5 (по умолчанию), z_center = 0 */
+    public static CircleEmptySimple createCircleEmptySimple(float x_center, float y_center, float radius) {
+        if (!context.getPrograms().containsKey("simple"))
+            GraphicTricks.createProgramSimple();
+
+        return new CircleEmptySimple(x_center,
+                y_center, 0, radius);
+    }
+
+
+    /** Фабричный метод для создания цилиндра */
+    public static CylinderSimple createCylinderSimple(float x_start, float y_start, float z_start,
+                                                      float r_bottom, float r_top, float h) {
+        if (!context.getPrograms().containsKey("simple"))
+            GraphicTricks.createProgramSimple();
+
+        return new CylinderSimple(x_start,
+                y_start, z_start, r_bottom, r_top, h);
+    }
+
+    /** Фабричный метод для создания simple-тетраэдра */
+    public static TetrahedronSimple createTetrahedronSimple(float top_x, float top_y, float top_z,
+                                                        float height, float radius) {
+        if (!context.getPrograms().containsKey("simple"))
+            GraphicTricks.createProgramSimple();
+
+        return new TetrahedronSimple(top_x, top_y, top_z, height, radius);
+    }
+
+    /** Фабричный метод для создания color-тетраэдра */
+    public static TetrahedronColor createTetrahedronColor
+            (float top_x, float top_y, float top_z,
+             float top_x_color, float top_y_color, float top_z_color,
+             float bottom_x_color, float bottom_y_color, float bottom_z_color,
+             float height, float radius) {
+
+        if (!context.getPrograms().containsKey("color"))
+            GraphicTricks.createProgramSimple();
+
+        return new TetrahedronColor
+                (top_x, top_y, top_z,
+                        top_x_color, top_y_color, top_z_color,
+                        bottom_x_color, bottom_y_color, bottom_z_color,
+                        height, radius);
+    }
+
+    /** Фабричный метод для создания point-сферы */
+    public static SphereSimple createSphereSimple(float center_x, float center_y, float center_z,
+                                                  float radius) {
+        if (!context.getPrograms().containsKey("simple"))
+            GraphicTricks.createProgramSimple();
+
+        return new SphereSimple(center_x, center_y, center_z, radius) {
+        };
+    }
+
+    /** Фабричный метод для создания color-октаэдра */
+    public static OctahedronColor createOctahedronColor
+            (float top_x, float top_y, float top_z,
+             float top_x_color, float top_y_color, float top_z_color,
+             float middle_x_color, float middle_y_color, float middle_z_color,
+             float bottom_x_color, float bottom_y_color, float bottom_z_color,
+             float height, float radius) {
+
+        if (!context.getPrograms().containsKey("color"))
+            GraphicTricks.createProgramSimple();
+
+        return new OctahedronColor
+                (top_x, top_y, top_z,
+                 top_x_color, top_y_color, top_z_color,
+                 middle_x_color, middle_y_color, middle_z_color,
+                 bottom_x_color, bottom_y_color, bottom_z_color,
+                 height, radius);
+    }
+
+    /** Фабричный метод для создания simple-октаэдра */
+    public static OctahedronSimple createOctahedronSimple(float top_x, float top_y, float top_z,
+                                                          float height, float radius) {
+        if (!context.getPrograms().containsKey("simple"))
+            GraphicTricks.createProgramSimple();
+
+        return new OctahedronSimple(top_x, top_y, top_z, height, radius);
+    }
+
+    /** Фабричный метод для создания simple-куба */
+    public static CubeSimple createCubeSimple(float left_bottom_x, float left_bottom_y, float left_bottom_z,
+                                              float edge) {
+        if (!context.getPrograms().containsKey("simple"))
+            GraphicTricks.createProgramSimple();
+
+        return new CubeSimple(left_bottom_x, left_bottom_y, left_bottom_z, edge);
+    }
+
     /** Фабричный метод для создания простого круга с шагом 5 (по умолчанию), z_center = 0 */
     public static CircleSimple createCircleSimple(float x_center, float y_center, float radius) {
         if (!context.getPrograms().containsKey("simple"))
@@ -370,6 +534,39 @@ public class GraphicTricks {
                 radius, r_edge, g_edge, b_edge);
     }
 
+    /** Фабричный метод для создания простого кольца с шагом 5 (по умолчанию),
+     *  z_center = 0
+     */
+    public static RingSimple createRingSimple(
+            float x_center, float y_center,
+            float r_small, float r_large) {
+
+        if (!context.getPrograms().containsKey("simple"))
+            GraphicTricks.createProgramSimple();
+
+
+        return new RingSimple(x_center, y_center, 0f,
+        r_small, r_large);
+    }
+
+    /** Фабричный метод для создания цветного кольца с шагом 5 (по умолчанию),
+     *  z_center = 0
+     */
+    public static RingColor createRingColor(
+            float x_center, float y_center,
+            float r_small, float g_small, float b_small,
+            float r_large, float g_large, float b_large,
+            float radius_small, float radius_large) {
+
+        if (!context.getPrograms().containsKey("color"))
+            GraphicTricks.createProgramSimple();
+
+        return new RingColor(
+                x_center, y_center, 0,
+                r_small, g_small, b_small,
+                r_large, g_large, b_large,
+                radius_small, radius_large);
+    }
 
 
     /**
@@ -538,14 +735,10 @@ public class GraphicTricks {
         glVertexAttribPointer(context.getAColorLocationColor(), 3, GL_FLOAT, false, 24,
                 triangle.getVertexData().position(3));
         glEnableVertexAttribArray(context.getAColorLocationColor());
-
         glDrawArrays(GL_TRIANGLES, 0, 3);
-
-
 
         return 1;
     }
-
 
     /**
      * Рисует простой четырехугольник, состоящий из двух треугольников
@@ -565,6 +758,62 @@ public class GraphicTricks {
     }
 
     /**
+     * Рисует простой прямоугольник со скругленными углами
+     * @param rect - прямоугольник, который нужно нарисовать
+     * @return - статус выполнения операции рисования
+     */
+    public static int draw(RoundRectSimple rect) {
+
+        glUseProgram(context.getPrograms().get("simple"));
+        bindMatrixForSimpleShader();
+        glVertexAttribPointer(context.getAPositionLocationSimple(), 2, GL_FLOAT, false, 0,
+                rect.getVertexData().position(0));
+        glEnableVertexAttribArray(context.getAPositionLocationSimple());
+
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 8);
+        glDrawArrays(GL_TRIANGLE_STRIP, 8, 4);
+        glDrawArrays(GL_TRIANGLE_STRIP, 12, 4);
+
+        glDrawArrays(GL_TRIANGLE_FAN,   16, 11);
+        glDrawArrays(GL_TRIANGLE_FAN,   27, 11);
+        glDrawArrays(GL_TRIANGLE_FAN,   38, 11);
+        glDrawArrays(GL_TRIANGLE_FAN,   49, 11);
+
+        return 1;
+    }
+
+    /**
+     * Рисует четырехугольник, на который накладывается текстура
+     * @param quadrangle - четырехугольник, который нужно нарисовать
+     * @return - статус выполнения операции рисования
+     */
+    public static int draw(QuadrangleTexture quadrangle, int textureObject) {
+
+        glUseProgram(context.getPrograms().get("texture"));
+        bindMatrixForTextureShader();
+
+        glVertexAttribPointer(context.getAPositionLocationTexture(), 3, GL_FLOAT, false, 20,
+                quadrangle.getVertexData().position(0));
+        glEnableVertexAttribArray(context.getAPositionLocationTexture());
+
+        glVertexAttribPointer(context.getATextureLocation(), 2, GL_FLOAT, false, 20,
+                quadrangle.getVertexData().position(3));
+        glEnableVertexAttribArray(context.getATextureLocation());
+
+        // Делаем активным 0-й юнит
+        glActiveTexture(GL_TEXTURE0);
+        // Передаем объект текстуры в таргет
+        glBindTexture(GL_TEXTURE_2D, textureObject);
+
+        // юнит текстуры
+        glUniform1i(context.getUTextureUnitLocation(), 0);
+
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+        return 1;
+    }
+
+    /**
      * Рисует цветной четырехугольник
      * @param quadrangle - треугольник, который нужно нарисовать
      * @return - статус выполнения операции рисования
@@ -572,6 +821,7 @@ public class GraphicTricks {
     public static int draw(QuadrangleColor quadrangle) {
 
         glUseProgram(context.getPrograms().get("color"));
+        bindMatrixForColorShader();
 
         glVertexAttribPointer(context.getAPositionLocationColor(), 3, GL_FLOAT, false, 24,
                 quadrangle.getVertexData().position(0));
@@ -581,12 +831,93 @@ public class GraphicTricks {
                 quadrangle.getVertexData().position(3));
         glEnableVertexAttribArray(context.getAColorLocationColor());
 
-        bindMatrixForColorShader();
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        return 1;
+    }
+
+    public static float[] getMLightPosInEyeSpace() {
+        return context.getMLightPosInEyeSpace();
+    }
+
+    /**
+     * Рисует цветной четырехугольник, можно добавить источник света
+     * @param quadrangle - треугольник, который нужно нарисовать
+     * @return - статус выполнения операции рисования
+     */
+    public static int draw(QuadrangleColor quadrangle, Lighted l) {
+
+        if (l == Lighted.TRUE) {
+            glUseProgram(context.getPrograms().get("light"));
+            GraphicTricks.on();
+
+            glVertexAttribPointer(context.getAPositionLocationLight(), 3, GL_FLOAT, false, 24,
+                    quadrangle.getVertexData().position(0));
+
+            glEnableVertexAttribArray(context.getAPositionLocationLight());
+
+            glVertexAttribPointer(context.getAColorLocationLight(), 3, GL_FLOAT, false, 24,
+                    quadrangle.getVertexData().position(3));
+
+            glEnableVertexAttribArray(context.getAColorLocationLight());
+
+            glVertexAttribPointer(context.getANormalLocationLight(), 3, GL_FLOAT, false, 0,
+                    quadrangle.getNormalData().position(0));
+
+            glEnableVertexAttribArray(context.getANormalLocationLight());
+
+            Matrix.multiplyMM(context.getMatrix(), 0, context.getViewMatrix(), 0, context.getModelMatrix(), 0);
+            glUniformMatrix4fv(context.getUMVMatrixLocationLight(), 1, false, context.getMatrix(), 0);
+            Matrix.multiplyMM(context.getMatrix(), 0, context.getProjectionMatrix(), 0, context.getMatrix(), 0);
+            glUniformMatrix4fv(context.getUMatrixLocationLight(), 1, false, context.getMatrix(), 0);
+            glUniform3f(context.getALightLocationLight(),
+                    context.getMLightPosInEyeSpace()[0],
+                    context.getMLightPosInEyeSpace()[1],
+                    context.getMLightPosInEyeSpace()[2]);
+
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+        }
+        else {
+            GraphicTricks.draw(quadrangle);
+        }
 
         return 1;
     }
 
+    /**
+     * Рисует простую окружность
+     * @param circle - окружность, которую нужно нарисовать
+     * @return - статус выполнения операции рисования
+     */
+    public static int draw(CircleEmptySimple circle) {
+
+        glUseProgram(context.getPrograms().get("simple"));
+        bindMatrixForSimpleShader();
+        glVertexAttribPointer(context.getAPositionLocationSimple(), 3, GL_FLOAT, false, 0,
+                circle.getVertexData());
+        glEnableVertexAttribArray(context.getAPositionLocationSimple());
+
+        glDrawArrays(GL_LINE_LOOP, 1, 74);
+
+        return 1;
+    }
+
+    /**
+     * Рисует сектор круга
+     * @param circle_s - сектор круга, который нужно нарисовать
+     * @return - статус выполнения операции рисования
+     */
+    public static int draw(CircleSectorSimple circle_s) {
+
+        glUseProgram(context.getPrograms().get("simple"));
+        bindMatrixForSimpleShader();
+        glVertexAttribPointer(context.getAPositionLocationSimple(), 3, GL_FLOAT, false, 0,
+                circle_s.getVertexData());
+        glEnableVertexAttribArray(context.getAPositionLocationSimple());
+        glDrawArrays(GL_TRIANGLE_FAN, 0, circle_s.getNumberVertices());
+
+        return 1;
+    }
 
     /**
      * Рисует простой круг
@@ -601,6 +932,109 @@ public class GraphicTricks {
                 circle.getVertexData());
         glEnableVertexAttribArray(context.getAPositionLocationSimple());
         glDrawArrays(GL_TRIANGLE_FAN, 0, 74);
+
+        return 1;
+    }
+
+
+    public static int draw(CylinderSimple cylinderSimple) {
+
+        glUseProgram(context.getPrograms().get("simple"));
+        bindMatrixForSimpleShader();
+        glVertexAttribPointer(context.getAPositionLocationSimple(), 3, GL_FLOAT, false, 0,
+                cylinderSimple.getVertexData().position(0));
+        glEnableVertexAttribArray(context.getAPositionLocationSimple());
+        //glDrawArrays(GL_TRIANGLE_FAN, 0, 74);
+        //glDrawArrays(GL_TRIANGLE_FAN, 74, 74);
+        glDrawArrays(GL_TRIANGLE_STRIP, 148, 145);
+
+        return 1;
+    }
+
+    public static int draw(TetrahedronSimple tetrahedronSimple) {
+
+        glUseProgram(context.getPrograms().get("simple"));
+        bindMatrixForSimpleShader();
+        glVertexAttribPointer(context.getAPositionLocationSimple(), 3, GL_FLOAT, false, 0,
+                tetrahedronSimple.getVertexData().position(0));
+        glEnableVertexAttribArray(context.getAPositionLocationSimple());
+
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 5);
+
+        return 1;
+    }
+
+    public static int draw(SphereSimple sphereSimple) {
+
+        glUseProgram(context.getPrograms().get("simple"));
+        bindMatrixForSimpleShader();
+        glVertexAttribPointer(context.getAPositionLocationSimple(), 3, GL_FLOAT, false, 0,
+                sphereSimple.getVertexData().position(0));
+        glEnableVertexAttribArray(context.getAPositionLocationSimple());
+
+        glDrawArrays(GL_POINTS, 0, sphereSimple.getAmountOfPoints());
+
+        return 1;
+    }
+
+    public static int draw(OctahedronSimple octahedronSimple) {
+
+        glUseProgram(context.getPrograms().get("simple"));
+        bindMatrixForSimpleShader();
+        glVertexAttribPointer(context.getAPositionLocationSimple(), 3, GL_FLOAT, false, 0,
+                octahedronSimple.getVertexData().position(0));
+        glEnableVertexAttribArray(context.getAPositionLocationSimple());
+
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
+        glDrawArrays(GL_TRIANGLE_FAN, 6, 6);
+
+        return 1;
+    }
+
+    public static int draw(CubeSimple cubeSimpleSimple) {
+
+        glUseProgram(context.getPrograms().get("simple"));
+        bindMatrixForSimpleShader();
+        glVertexAttribPointer(context.getAPositionLocationSimple(), 3, GL_FLOAT, false, 0,
+                cubeSimpleSimple.getVertexData().position(0));
+        glEnableVertexAttribArray(context.getAPositionLocationSimple());
+
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_BYTE, cubeSimpleSimple.getIndexBuffer());
+
+        return 1;
+    }
+
+    public static int draw(OctahedronColor octahedronColor) {
+
+        glUseProgram(context.getPrograms().get("color"));
+        bindMatrixForColorShader();
+        glVertexAttribPointer(context.getAPositionLocationColor(), 3, GL_FLOAT, false, 0,
+                octahedronColor.getVertexData().position(0));
+        glEnableVertexAttribArray(context.getAPositionLocationColor());
+
+        glVertexAttribPointer(context.getAColorLocationColor(), 3, GL_FLOAT, false, 0,
+                octahedronColor.getVertexColorBuffer().position(0));
+        glEnableVertexAttribArray(context.getAColorLocationColor());
+
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
+        glDrawArrays(GL_TRIANGLE_FAN, 6, 6);
+
+        return 1;
+    }
+
+    public static int draw(TetrahedronColor tetrahedronColor) {
+
+        glUseProgram(context.getPrograms().get("color"));
+        bindMatrixForColorShader();
+        glVertexAttribPointer(context.getAPositionLocationColor(), 3, GL_FLOAT, false, 0,
+                tetrahedronColor.getVertexData().position(0));
+        glEnableVertexAttribArray(context.getAPositionLocationColor());
+
+        glVertexAttribPointer(context.getAColorLocationColor(), 3, GL_FLOAT, false, 0,
+                tetrahedronColor.getVertexColorBuffer().position(0));
+        glEnableVertexAttribArray(context.getAColorLocationColor());
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 5);
+        glDrawArrays(GL_TRIANGLES, 1, 3);
 
         return 1;
     }
@@ -626,6 +1060,43 @@ public class GraphicTricks {
         return 1;
     }
 
+    /**
+     * Рисует простое кольцо
+     * @param ring - кольцо, которое нужно нарисовать
+     * @return - статус выполнения операции рисования
+     */
+    public static int draw(RingSimple ring) {
+
+        glUseProgram(context.getPrograms().get("simple"));
+        bindMatrixForSimpleShader();
+        glVertexAttribPointer(context.getAPositionLocationSimple(), 3, GL_FLOAT, false, 0,
+                ring.getVertexData());
+        glEnableVertexAttribArray(context.getAPositionLocationSimple());
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 74);
+
+        return 1;
+    }
+
+    /**
+     * Рисует цветное кольцо
+     * @param ring - кольцо, которое нужно нарисовать
+     * @return - статус выполнения операции рисования
+     */
+    public static int draw(RingColor ring) {
+
+        glUseProgram(context.getPrograms().get("color"));
+        bindMatrixForColorShader();
+        glVertexAttribPointer(context.getAPositionLocationColor(), 3, GL_FLOAT, false, 0,
+                ring.getVertexData().position(0));
+        glEnableVertexAttribArray(context.getAPositionLocationColor());
+
+        glVertexAttribPointer(context.getAColorLocationColor(), 3, GL_FLOAT, false, 0,
+                ring.getVertexColorBuffer().position(0));
+        glEnableVertexAttribArray(context.getAColorLocationColor());
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 74);
+
+        return 1;
+    }
 
     /**
      * Рисует простой полигон
@@ -716,10 +1187,14 @@ public class GraphicTricks {
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-
     /** Изменяет цвет кисти */
     public static void changeBrushColor(float red, float green, float blue, float alpha) {
         glUniform4f(context.getUColorLocationSimple(), red, green, blue, alpha);
+    }
+
+    public static void changeBrushColor(Color color) {
+        glUniform4f(context.getUColorLocationSimple(),
+                color.getR(), color.getG(), color.getB(), color.getA());
     }
 
     /** Инициализирует frustum матрицу
@@ -737,9 +1212,9 @@ public class GraphicTricks {
         float bottom = -1.0f;
         float top = 1.0f;
         // Расстояние от камеры до ближайшей границы
-        float near = 1.0f;
+        float near = 1f;
         // Расстояние от камеры до дальнейшей границы
-        float far = 5.0f;
+        float far = 10.0f;
 
         if (width > height) {
             ratio = (float) width / height;
@@ -819,10 +1294,17 @@ public class GraphicTricks {
     }
 
     /**
-     * Приводит матрицу модели к единичному виду, что никак не влияет на положение модели
+     * Приводит матрицу модели к единичному виду
      */
     public static void dropModelMatrix() {
         Matrix.setIdentityM(context.getModelMatrix(), 0);
+    }
+
+    /**
+     * Приводит матрицу модели света к единичному виду
+     */
+    public static void dropLightMatrix() {
+        Matrix.setIdentityM(context.getMLightModelMatrix(), 0);
     }
 
     public static void init() {
@@ -873,6 +1355,25 @@ public class GraphicTricks {
     }
 
     /**
+     *  Связывает матрицы вида, модели и проекции в одной матрице, которую передаем в шейдер
+     */
+    public static void bindMatrixForTextureShader() {
+        Matrix.multiplyMM(
+                context.getMatrix(), 0,
+                context.getViewMatrix(), 0,
+                context.getModelMatrix(), 0
+        );
+
+        Matrix.multiplyMM(
+                context.getMatrix(), 0,
+                context.getProjectionMatrix(), 0,
+                context.getMatrix(), 0
+        );
+
+        glUniformMatrix4fv(context.getUMatrixLocationTexture(), 1, false, context.getMatrix(), 0);
+    }
+
+    /**
      * Реализует смещение модели за счет вызова метода translateM()
      * @param dx - смещение по X
      * @param dy - смещение по Y
@@ -880,6 +1381,16 @@ public class GraphicTricks {
      */
     public static void translateModelMatrix(float dx, float dy, float dz) {
         Matrix.translateM(context.getModelMatrix(), 0, dx, dy, dz);
+    }
+
+    /**
+     * Реализует смещение источника света за счет вызова метода translateM()
+     * @param dx - смещение по X
+     * @param dy - смещение по Y
+     * @param dz - смещение по Z
+     */
+    public static void translateLightMatrix(float dx, float dy, float dz) {
+        Matrix.translateM(context.getMLightModelMatrix(), 0, dx, dy, dz);
     }
 
     /**
@@ -904,6 +1415,31 @@ public class GraphicTricks {
     }
 
     /**
+     * Реализует вращение источника света на угол вокруг оси, выходящей из (0,0,0) в (x,y,z)
+     * @param angle - угол поворота в градусах
+     * @param x - X второй точки оси вращения
+     * @param y - Y второй точки оси вращения
+     * @param z - Z второй точки оси вращения
+     */
+    public static void rotateLightMatrix(float angle, float x, float y, float z) {
+        Matrix.rotateM(context.getMLightModelMatrix(), 0, angle, x, y, z);
+    }
+
+    public static void on() {
+        Matrix.multiplyMV(
+                context.getMLightPosInWorldSpace(), 0,
+                context.getMLightModelMatrix(), 0,
+                context.getMLightPosInModelSpace(), 0
+        );
+
+        Matrix.multiplyMV(
+                context.getMLightPosInEyeSpace(), 0,
+                context.getViewMatrix(), 0,
+                context.getMLightPosInWorldSpace(), 0
+        );
+    }
+
+    /**
      * Метод, который служит для создания программы, связывающей два простейших шейдера,
      * позволяющих рисовать Simple примитивы
      */
@@ -923,10 +1459,26 @@ public class GraphicTricks {
         context.setUMatrixLocationSimple(glGetUniformLocation(programId, "u_Matrix"));
     }
 
-    /**
-     * Метод, который служит для создания программы, связывающей два шейдера,
-     * позволяющих рисовать Color-примитивы
-     */
+    private static void createProgramLight() {
+
+        int vertexShaderId = ShaderUtils.createShader(context.getContext(), GL_VERTEX_SHADER,
+                R.raw.vertex_shader_llighting);
+        int fragmentShaderId = ShaderUtils.createShader(context.getContext(), GL_FRAGMENT_SHADER,
+                R.raw.fragment_shader_lighting);
+        int programId = ShaderUtils.createProgram(vertexShaderId, fragmentShaderId);
+        context.getPrograms().put("light", programId);
+
+        glUseProgram(programId);
+
+        context.setAPositionLocationLight(glGetAttribLocation(programId,  "a_Position"));
+        context.setAColorLocationLight(glGetAttribLocation(programId,     "a_Color"));
+        context.setANormalLocationLight(glGetAttribLocation(programId,    "a_Normal"));
+
+        context.setULightLocationLight(glGetUniformLocation(programId,    "u_LightPos"));
+        context.setUMatrixLocationLight(glGetUniformLocation(programId,   "u_MVPMatrix"));
+        context.setUMVMatrixLocationLight(glGetUniformLocation(programId, "u_MVMatrix"));
+    }
+
     private static void createProgramColor() {
 
         int vertexShaderId = ShaderUtils.createShader(context.getContext(), GL_VERTEX_SHADER,
@@ -943,6 +1495,30 @@ public class GraphicTricks {
     }
 
     /**
+     * Метод, который служит для создания программы, связывающей два шейдера,
+     * позволяющих рисовать текстуры
+     */
+    private static void createProgramTexture() {
+
+        int vertexShaderId = ShaderUtils.createShader(context.getContext(), GL_VERTEX_SHADER,
+                R.raw.vertex_shader_texture);
+        int fragmentShaderId = ShaderUtils.createShader(context.getContext(), GL_FRAGMENT_SHADER,
+                R.raw.fragment_shader_texture);
+        int programId = ShaderUtils.createProgram(vertexShaderId, fragmentShaderId);
+        context.getPrograms().put("texture", programId);
+
+        glUseProgram(programId);
+        // Позиция координат текстуры
+        context.setATextureLocation(glGetAttribLocation(programId, "a_Texture"));
+        // Позиция кооринат примитива
+        context.setAPositionLocationTexture(glGetAttribLocation(programId, "a_Position"));
+        // Позиция комбинированной матрицы
+        context.setUMatrixLocationTexture(glGetUniformLocation(programId, "u_Matrix"));
+        // Позиция unit-a
+        context.setUTextureUnitLocation(glGetUniformLocation(programId, "u_TextureUnit"));
+    }
+
+    /**
      * Метод, обновляющий программы при смене ориантации экрана, либо при восстановлении
      * приложения.
      */
@@ -951,6 +1527,12 @@ public class GraphicTricks {
             createProgramColor();
         if (context.getPrograms().containsKey("simple")) {
             createProgramSimple();
+        }
+        if (context.getPrograms().containsKey("texture")) {
+            createProgramTexture();
+        }
+        if (context.getPrograms().containsKey("light")) {
+            createProgramLight();
         }
 
     }
