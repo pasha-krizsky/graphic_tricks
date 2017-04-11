@@ -3,7 +3,7 @@ Graphical engine that encapsulates OpenGL ES 2.0 methods and provides a simple i
 
 Some examples: 
 
-Move camera and model: https://www.youtube.com/watch?v=pV45MtoJEkA
+Move camera and model: https://www.youtube.com/watch?v=ZAG7-U0uDJ4
 
 Textures: https://www.youtube.com/watch?v=qDgpb1tuGYI
 
